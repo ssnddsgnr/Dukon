@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dukon — видение системы</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;800;900&family=Cormorant+Garamond:ital,wght@1,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* VOICE  работа: презентация архитектуры для инженеров и владельца, плотная и собранная
+   IDEA   швейцарский редакционный питч-дек: огромный гротеск, тонкие линейки, нумерация разделов
+   PICTURE на каждом слайде — сам предмет: машина состояний, схема слоёв, макет инбокса, карточка поста
+   COLOUR чёрный фон, тёплый белый текст, один сигнальный оранжево-красный; 3 слайда — сплошной оранжевый
+   TYPE   Onest 800/900 для заголовков + Onest текст, курсив Cormorant как редкий акцент, JetBrains Mono для кодов
+   LAYOUT горизонтальная лента слайдов; на телефоне слайд листается вбок, длинный слайд скроллится вниз */
+:root{color-scheme:dark;--bg:#0a0a0a;--ink:#f1ede6;--mute:#8c877f;--line:#2a2826;--card:#141312;--acc:#ff4a1c;--acc2:#ff7a52}
+*{box-sizing:border-box;min-width:0}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--ink)}
+body{font:16px/1.5 Onest,system-ui,sans-serif;overflow:hidden;-webkit-font-smoothing:antialiased}
+code,.mono{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:.86em}
+.deck{display:flex;height:100%;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain}
+.deck::-webkit-scrollbar{display:none}
+.slide{flex:0 0 100%;width:100%;height:100%;scroll-snap-align:start;scroll-snap-stop:always;overflow-y:auto;overflow-x:hidden;padding:clamp(18px,3.2vw,48px) max(4.5vw,18px) 92px}
+.in{max-width:1380px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;gap:clamp(18px,2.6vw,36px)}
+.top{display:flex;justify-content:space-between;gap:16px;padding-bottom:12px;border-bottom:1px solid var(--line);font-size:13px;color:var(--mute)}
+.top b{color:var(--ink);font-weight:600;margin-right:10px}
+h1,h2,h3{margin:0;font-weight:800;letter-spacing:-.035em;line-height:1;text-wrap:balance}
+h2{font-size:clamp(34px,5vw,80px)}
+h3{font-size:clamp(20px,1.7vw,26px);letter-spacing:-.02em;line-height:1.1}
+p{margin:0}
+.lead{font-size:clamp(16px,1.35vw,20px);color:#cfcac2;max-width:62ch}
+.mute{color:var(--mute)}
+.acc{color:var(--acc)}
+em.s{font-family:"Cormorant Garamond",serif;font-style:italic;font-weight:500;letter-spacing:-.01em}
+.g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(18px,3vw,48px)}
+.g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(14px,2vw,28px)}
+.g4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:clamp(14px,2vw,28px)}
+.split{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:clamp(20px,3.5vw,56px);align-items:start}
+.box{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:clamp(16px,1.6vw,24px)}
+.rule{border-top:1px solid var(--line);padding-top:14px}
+.n{font-size:13px;color:var(--mute);display:block;margin-bottom:8px}
+ul.l{list-style:none;margin:0;padding:0}
+ul.l li{padding:10px 0;border-top:1px solid var(--line)}
+ul.l li:last-child{border-bottom:1px solid var(--line)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line);border-radius:999px;padding:5px 12px;font-size:13px;white-space:nowrap}
+.chip.a{background:var(--acc);border-color:var(--acc);color:#0a0a0a;font-weight:600}
+.big{font-weight:900;letter-spacing:-.05em;line-height:.9;font-size:clamp(54px,8vw,132px)}
+.stat{display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);padding-top:14px}
+.stat .v{font-weight:800;letter-spacing:-.04em;line-height:.95;font-size:clamp(36px,4.6vw,72px);white-space:nowrap}
+.stat .k{font-size:14px;color:var(--mute)}
+table{width:100%;border-collapse:collapse;font-size:15px}
+th{text-align:left;font-weight:500;color:var(--mute);font-size:13px;padding:8px 10px 8px 0;border-bottom:1px solid var(--line)}
+td{padding:10px 10px 10px 0;border-bottom:1px solid var(--line);vertical-align:top}
+.scroll{overflow-x:auto}
+/* orange slides */
+.or{background:var(--acc);color:#0a0a0a}
+.or .top{border-color:rgba(0,0,0,.25);color:rgba(0,0,0,.6)}
+.or .top b{color:#0a0a0a}
+.or .lead{color:#1a0c06}
+/* cover */
+.cover .word{font-weight:900;font-size:clamp(84px,29vw,470px);letter-spacing:-.065em;line-height:.8;color:var(--acc);margin-left:-.04em}
+.cover .bot{display:grid;grid-template-columns:minmax(0,1.3fr) repeat(3,minmax(0,1fr));gap:clamp(16px,2.4vw,40px);align-items:end;margin-top:auto}
+/* problem rows */
+.prob{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:clamp(14px,2vw,28px);margin-top:auto}
+.prob div{border-top:2px solid var(--ink);padding-top:14px}
+.prob .x{font-weight:800;font-size:clamp(44px,5vw,84px);letter-spacing:-.05em;line-height:1;color:var(--acc)}
+/* context diagram */
+.ctx{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr) minmax(0,1.3fr) minmax(0,1.1fr) minmax(0,1fr);gap:10px;align-items:stretch}
+.ctx .col{display:flex;flex-direction:column;gap:10px;justify-content:center}
+.nd{border:1px solid var(--line);border-radius:4px;padding:12px 14px;background:var(--card);font-size:14px}
+.nd b{display:block;font-size:15px}
+.nd.act{border-radius:999px;text-align:center;background:none;border-color:var(--ink)}
+.nd.core{background:var(--acc);color:#0a0a0a;border:0;display:flex;flex-direction:column;justify-content:space-between;min-height:220px;padding:18px}
+.nd.core b{font-size:clamp(28px,3vw,46px);font-weight:900;letter-spacing:-.04em}
+.arr{color:var(--acc);font-size:13px;text-align:center}
+.stores{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:10px}
+/* layers */
+.layer{border-top:2px solid var(--ink);padding-top:14px;display:flex;flex-direction:column;gap:10px}
+.layer.core{border-color:var(--acc)}
+.mod{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:15px}
+.mod span:last-child{color:var(--mute);font-size:13px;white-space:nowrap}
+/* tree */
+.tree{font-size:clamp(18px,1.8vw,26px);font-weight:700;letter-spacing:-.02em}
+.tree div{padding:14px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:12px;align-items:baseline}
+.tree div:nth-child(2){padding-left:7%}
+.tree div:nth-child(3){padding-left:14%;color:var(--acc)}
+.tree small{font-size:13px;font-weight:400;color:var(--mute);letter-spacing:0;text-align:right}
+/* formula */
+.formula{font-weight:800;letter-spacing:-.04em;font-size:clamp(30px,4.4vw,68px);line-height:1.02}
+.formula .op{color:var(--acc)}
+/* steps */
+.steps{display:grid;grid-template-columns:repeat(var(--c,6),minmax(0,1fr));gap:0;counter-reset:s}
+.steps>div{border-top:1px solid var(--line);padding:14px 14px 0 0;position:relative;font-size:14.5px}
+.steps>div::before{counter-increment:s;content:counter(s);display:block;font-weight:800;font-size:clamp(26px,2.4vw,38px);letter-spacing:-.04em;margin-bottom:6px}
+.steps>div.hl{border-top:2px solid var(--acc)}
+.steps>div.hl::before{color:var(--acc)}
+/* state machine */
+.sm{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.st{border:1px solid var(--line);border-radius:4px;padding:10px 12px;background:var(--card);display:flex;flex-direction:column;gap:2px;min-width:0}
+.st b{font-size:15px;white-space:nowrap}
+.st code{color:var(--mute);font-size:12px}
+.st.k{background:var(--acc);border-color:var(--acc);color:#0a0a0a}
+.st.k code{color:rgba(0,0,0,.6)}
+.sm i{font-style:normal;color:var(--acc)}
+.br td:first-child,.br td:nth-child(2){white-space:nowrap}
+/* inbox mock */
+.mock{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.5fr) minmax(0,.9fr);border:1px solid var(--line);border-radius:6px;overflow:hidden;background:#0f0e0d;font-size:13.5px;min-height:360px}
+.mock>div{padding:14px;display:flex;flex-direction:column;gap:8px}
+.mock>div+div{border-left:1px solid var(--line)}
+.mock .h{font-size:12px;color:var(--mute)}
+.cv{padding:9px 10px;border-radius:4px;display:flex;justify-content:space-between;gap:8px}
+.cv.on{background:#1d1b19}
+.cv small{color:var(--mute)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--acc);flex:none;margin-top:6px}
+.msg{max-width:84%;padding:8px 11px;border-radius:10px;line-height:1.35}
+.msg.c{background:#1f1d1b;align-self:flex-start}
+.msg.b{background:#2a1a13;border:1px solid #4a2414;align-self:flex-end}
+.msg.m{background:var(--ink);color:#0a0a0a;align-self:flex-end}
+.sys{align-self:center;font-size:12px;color:var(--acc);border:1px dashed #5a2a18;border-radius:999px;padding:3px 10px;white-space:nowrap}
+.kv{display:flex;justify-content:space-between;gap:8px;border-bottom:1px solid var(--line);padding:6px 0}
+.kv span:first-child{color:var(--mute)}
+.btn{background:var(--acc);color:#0a0a0a;border-radius:4px;padding:8px;text-align:center;font-weight:600}
+/* post card */
+.post{background:var(--acc);color:#0a0a0a;border-radius:6px;padding:18px;display:flex;flex-direction:column;gap:12px;aspect-ratio:4/5;max-width:340px;width:100%}
+.post .ph{flex:1;background:#0a0a0a;border-radius:3px;position:relative;overflow:hidden}
+.post .ph svg{position:absolute;inset:0;width:100%;height:100%}
+.post .pr{font-weight:900;font-size:40px;letter-spacing:-.04em;line-height:.9}
+.post .row{display:flex;justify-content:space-between;align-items:end;gap:8px;font-size:13px}
+.sz{display:flex;gap:4px}
+.sz span{border:1.5px solid #0a0a0a;border-radius:3px;padding:1px 6px;font-weight:600}
+.sz span.off{opacity:.35;text-decoration:line-through}
+/* pipeline */
+.pipe{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.pipe span{border:1px solid var(--line);padding:8px 12px;border-radius:4px;font-size:14px;background:var(--card);white-space:nowrap}
+.pipe span.k{border-color:var(--acc);color:var(--acc)}
+.pipe i{font-style:normal;color:var(--acc)}
+/* invariants */
+.inv{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:0;border-top:1px solid var(--line)}
+.inv div{padding:14px 12px 14px 0;border-bottom:1px solid var(--line)}
+.inv b{display:block;font-size:clamp(30px,3.4vw,52px);font-weight:800;letter-spacing:-.04em;line-height:1}
+.inv span{font-size:13px;color:var(--mute)}
+/* roadmap */
+.rm{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
+.rm .bar{height:56px;background:#1c1a18}
+.rm .bar.now{background:var(--acc)}
+.rm .t{padding-top:14px;display:flex;flex-direction:column;gap:8px;padding-right:14px}
+.rm .t b{font-size:clamp(24px,2.4vw,36px);font-weight:800;letter-spacing:-.04em}
+.lvl{font-size:12px;border-radius:999px;padding:2px 9px;white-space:nowrap;border:1px solid}
+.lvl.h{color:var(--acc);border-color:var(--acc)}
+.lvl.m{color:var(--mute);border-color:var(--line)}
+/* nav */
+.nav{position:fixed;left:0;right:0;bottom:0;height:64px;display:flex;align-items:center;gap:14px;padding:0 max(4.5vw,18px);background:linear-gradient(transparent,rgba(10,10,10,.92) 40%);pointer-events:none;z-index:5}
+.nav>*{pointer-events:auto}
+.prog{flex:1;height:2px;background:#2a2826;position:relative}
+.prog i{position:absolute;left:0;top:0;bottom:0;background:var(--acc);width:0;transition:width .25s}
+.cnt{font-size:13px;font-variant-numeric:tabular-nums;color:var(--mute);white-space:nowrap}
+.cnt b{color:var(--ink);font-weight:600}
+.nb{width:44px;height:44px;border-radius:50%;border:1px solid #3a3734;background:rgba(10,10,10,.6);color:var(--ink);font:500 18px Onest,sans-serif;cursor:pointer;display:grid;place-items:center}
+.nb:hover{border-color:var(--acc);color:var(--acc)}
+.nb:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.nb:disabled{opacity:.3;cursor:default}
+.hint{font-size:12px;color:var(--mute);white-space:nowrap}
+@media(max-width:1000px){
+ .g4,.prob,.inv{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .inv{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .steps{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .steps>div{padding-bottom:16px}
+ .ctx{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+ .ctx .core-col{grid-column:1/-1;order:-1}
+ .cover .bot{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .cover .bot>p{grid-column:1/-1}
+ .hint{display:none}
+}
+@media(max-width:760px){
+ .g2,.g3,.split{grid-template-columns:minmax(0,1fr)}
+ .mock{grid-template-columns:minmax(0,1fr)}
+ .mock>div+div{border-left:0;border-top:1px solid var(--line)}
+ .mock>div:first-child .cv:nth-child(n+5){display:none}
+ .rm{grid-template-columns:minmax(0,1fr)}
+ .rm>div{display:grid;grid-template-columns:10px minmax(0,1fr);gap:14px}
+ .rm .bar{height:auto}
+ .rm .t{padding-top:0;padding-bottom:18px}
+ .post{max-width:100%;aspect-ratio:auto}
+ .post .ph{min-height:200px}
+}
+@media(max-width:560px){
+ .prob,.g4{grid-template-columns:minmax(0,1fr)}
+ .inv{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .steps{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+ .ctx{grid-template-columns:minmax(0,1fr)}
+ table{font-size:13.5px}
+ .stack thead{display:none}
+ .stack tr{display:grid;padding:10px 0;border-bottom:1px solid var(--line)}
+ .stack td{border:0;padding:2px 0}
+ .stack td:first-child{font-weight:600}
+ .nav{gap:10px}
+ .chip{white-space:normal}
+}
+@media(prefers-reduced-motion:reduce){.prog i{transition:none}}
+</style>
+</head>
+<body>
+<main class="deck" id="deck">
+
+<!-- 1 COVER -->
+<section class="slide cover" aria-label="Обложка">
+<div class="in">
+ <header class="top"><span><b>Dukon</b>рабочее название</span><span>Видение системы · v0.1.0 · черновик · 26.11.2026</span></header>
+ <div class="word">Dukon</div>
+ <div class="bot">
+  <p class="lead" style="color:var(--ink);font-size:clamp(20px,2vw,30px);line-height:1.2;font-weight:500;letter-spacing:-.01em">Операционная система для розницы, которая продаёт через WhatsApp. Одежда и товары повседневного спроса, Кыргызстан.</p>
+  <div class="stat"><span class="v">19</span><span class="k">модулей в трёх слоях</span></div>
+  <div class="stat"><span class="v">53</span><span class="k">инварианта системы</span></div>
+  <div class="stat"><span class="v acc">4</span><span class="k">фазы поставки</span></div>
+ </div>
+</div>
+</section>
+
+<!-- 2 PROBLEM -->
+<section class="slide">
+<div class="in">
+ <header class="top"><span><b>1.1</b>Проблема</span><span>BLUEPRINT §1</span></header>
+ <h2>Продажи идут в WhatsApp.<br>Всё остальное <em class="s acc">вручную</em>.</h2>
+ <p class="lead">Бизнес продаёт B2C через группы, каналы и личные чаты. Четыре точки, где теряются время, деньги и остатки.</p>
+ <div class="prob">
+  <div><span class="x">×N</span><h3>Публикация</h3><p class="mute">Одни и те же фото и цены вручную рассылаются по множеству групп.</p></div>
+  <div><span class="x">?</span><h3>Одни и те же вопросы</h3><p class="mute">Цена, размеры, наличие, доставка — основная часть переписки.</p></div>
+  <div><span class="x">⌁</span><h3>Приём заказов</h3><p class="mute">Размер, адрес, скриншот оплаты разбросаны по чатам и перепечатываются в другое место.</p></div>
+  <div><span class="x">0</span><h3>Склад</h3><p class="mute">Проданное висит в постах. Остатки живут в головах сотрудников.</p></div>
+ </div>
+</div>
+</section>
+
+<!-- 3 THESIS -->
+<section class="slide or">
+<div class="in">
+ <header class="top"><span><b>1.2</b>Тезис</span><span>BLUEPRINT §1</span></header>
+ <div style="margin-top:auto;display:flex;flex-direction:column;gap:clamp(20px,3vw,40px)">
+  <h1 class="big" style="font-size:clamp(48px,8.4vw,150px)">Клиент <em class="s">остаётся</em> в&nbsp;WhatsApp. Операции переезжают в&nbsp;систему.</h1>
+  <p class="lead" style="font-size:clamp(17px,1.5vw,22px)">Покупатели не уйдут в классический интернет-магазин. Поэтому Dukon встаёт за WhatsApp, а не вместо него: каталог, склад, заказы и оплаты живут в системе, а разговор с клиентом — там, где он уже есть.</p>
+ </div>
+</div>
+</section>
+
+<!-- 4 GOALS -->
+<section class="slide">
+<div class="in">
+ <header class="top"><span><b>1.3</b>Цели и не-цели</span><span>BLUEPRINT §2</span></header>
+ <h2>Что строим и&nbsp;чего сознательно не&nbsp;делаем</h2>
+ <div class="split">
+  <div>
+   <span class="n">Цели</span>
+   <ul class="l">
+    <li>Единый источник правды: каталог, склад, заказы, клиенты, базовые финансы.</li>
+    <li>Каждый диалог с клиентом — в одном CRM-инбоксе команды.</li>
+    <li>Публикация сводится к копированию готового поста в один тап.</li>
+    <li>Остатки верны во всех точках: бот, каталог, посты, менеджеры.</li>
+    <li>Быстрая и устойчивая к фроду сверка оплат с подтверждением человеком.</li>
+    <li>Детальная гибкая аналитика поверх чистой модели данных.</li>
+   </ul>
+  </div>
+  <div>
+   <span class="n">Не-цели</span>
+   <ul class="l mute">
+    <li><span style="color:var(--ink)">Эквайринг и онлайн-оплата.</span> Только QR и ручная сверка.</li>
+    <li><span style="color:var(--ink)">Фискальные чеки.</span> Их выдаёт бизнес, система хранит ссылку.</li>
+    <li><span style="color:var(--ink)">Автопостинг в группы и каналы.</span> Официальный API этого не умеет.</li>
+    <li><span style="color:var(--ink)">Multi-tenant SaaS.</span> Одна инсталляция — один бизнес.</li>
+    <li><span style="color:var(--ink)">Бухгалтерия.</span> Учёт, налоги, зарплаты и кредиторка вне системы.</li>
+   </ul>
+  </div>
+ </div>
+</div>
+</section>
+
+<!-- 5 PRINCIPLES -->
+<section class="slide">
+<div class="in">
+ <header class="top"><span><b>1.4</b>Принципы</span><span>STACK §1</span></header>
+ <h2>Четыре правила, которые<br>переживут любую фичу</h2>
+ <div class="g4" style="margin-top:auto">
+  <div class="stat"><span class="v acc">I</span><h3>Ядро не зависит от канала</h3><p class="mute">WhatsApp останется главным каналом ещё 3–4 года. Ядро должно его пережить, каналы — заменяемые адаптеры.</p></div>
+  <div class="stat"><span class="v">II</span><h3>Один источник правды</h3><p class="mute">PostgreSQL хранит всё каноническое состояние. Второй базы для бизнес-данных нет.</p></div>
+  <div class="stat"><span class="v">III</span><h3>Скучная инфраструктура, строгий код</h3><p class="mute">Минимум движущихся частей в ops. Корректность держат типы, constraints и инварианты.</p></div>
+  <div class="stat"><span class="v">IV</span><h3>Человек в контуре</h3><p class="mute">Всё, что касается AI и денег: AI готовит черновик, человек принимает решение.</p></div>
+ </div>
+</div>
+</section>
+
+<!-- 6 CONTEXT -->
+<section class="slide">
+<div class="in">
+ <header class="top"><span><b>2.1</b>Контекст системы</span><span>BLUEPRINT §3</span></header>
+ <h2>Кто и как касается Dukon</h2>
+ <div>
+  <div class="ctx">
+   <div class="col">
+    <div class="nd act"><b>Клиент</b></div>
+    <div class="arr">WhatsApp · браузер →</div>
+   </div>
+   <div class="col">
+    <div class="nd"><b>Meta / BSP</b>Cloud API, webhooks</div>
+    <div class="nd"><b>Витрина</b>каталог с живыми остатками</div>
+   </div>
+   <div class="col core-col">
+    <div class="nd core"><span style="font-size:13px">Единственный источник правды</span><b>Dukon</b><span style="font-size:14px">Rust API · workers · outbox</span></div>
+   </div>
+   <div class="col">
+    <div class="nd"><b>CRM / Admin / Intake</b>PWA для команды</div>
+    <div class="nd"><b>Группы и каналы</b>копирование готовых постов вручную</div>
+   </div>
+   <div class="col">
+    <div class="nd act"><b>Владелец и менеджеры</b></div>
+    <div class="arr">← PWA · copy &amp; paste</div>
+   </div>
+  </div>
+  <div class="stores">
+   <div class="nd"><b>PostgreSQL</b>всё каноническое состояние</div>
+   <div class="nd"><b>Cloudflare R2</b>медиа, оригиналы, бэкапы</div>
+   <div class="nd"><b>LLM-провайдеры</b>только парсинг в черновики</div>
+  </div>
+ </div>
+ <p class="lead">Клиент не устанавливает ничего нового. Команда работает в одном PWA. Посты в группы публикуются руками, но из готового шаблона.</p>
+</div>
+</section>
+
+<!-- 7 MODULES -->
+<section class="slide">
+<div class="in">
+ <header class="top"><span><b>2.2</b>Карта модулей</span><span>BLUEPRINT §4–5</span></header>
+ <div class="split" style="align-items:end">
+  <h2>19 модулей, три слоя, одно правило зависимостей</h2>
+  <p class="lead">Каналы шлют в ядро команды через API. Ядро публикует события и никогда не вызывает каналы. Нарушение ловит проверка графа crate'ов в CI.</p>
+ </div>
+ <div class="g3">
+  <div class="layer"><h3>Каналы</h3>
+   <div class="mod"><span>WhatsApp-шлюз</span><span>P2</span></div>
+   <div class="mod"><span>Бот</span><span>P2</span></div>
+   <div class="mod"><span>CRM-инбокс</span><span>P2</span></div>
+   <div class="mod"><span>Генератор постов</span><span>P3</span></div>
+   <div class="mod"><span>Витрина и лид-форма</span><span>P3</span></div>
+  </div>
+  <div class="layer core"><h3 class="acc">Ядро</h3>
+   <div class="mod"><span>Каталог</span><span>P1</span></div>
+   <div class="mod"><span>Склад: движения, резервы, локации</span><span>P1</span></div>
+   <div class="mod"><span>Приёмка с AI-черновиками</span><span>P1</span></div>
+   <div class="mod"><span>Финансы: себестоимость, цены, маржа</span><span>P1</span></div>
+   <div class="mod"><span>Заказы: машина состояний</span><span>P2</span></div>
+   <div class="mod"><span>Клиенты</span><span>P2</span></div>
+   <div class="mod"><span>Сверка оплат</span><span>P2</span></div>
+   <div class="mod"><span>Доставка</span><span>P2–P4</span></div>
+  </div>
+  <div class="layer"><h3>Платформа</h3>
+   <div class="mod"><span>AI-шлюз</span><span>P1</span></div>
+   <div class="mod"><span>Шина событий (outbox)</span><span>P1</span></div>
+   <div class="mod"><span>Доступ, права, аудит</span><span>P1</span></div>
+   <div class="mod"><span>Медиа, бэкапы, наблюдаемость</span><span>P1</span></div>
+   <div class="mod"><span>Уведомления</span><span>P2</span></div>
+   <div class="mod"><span>Аналитика</span><span>P4</span></div>
+  </div>
+ </div>
+</div>
+</section>
+
+<!-- 8 CATALOG -->
+<section class="slide">
+<div class="in">
+ <header class="top"><span><b>3.1</b>Ядро · Каталог</span><span>VISION-01 §3</span></header>
+ <h2>Продаётся всегда вариант, а&nbsp;не&nbsp;товар</h2>
+ <div class="split">
+  <div class="tree">
+   <div>Категория <small>дерево; атрибуты и оси наследуются вниз</small></div>
+   <div>Товар <small>название, бренд, сезон, пол, медиа</small></div>
+   <div>Вариант <small style="color:var(--acc)">SKU · размер × цвет · штрихкод</small></div>
+   <p class="mute" style="font-size:15px;font-weight:400;letter-spacing:0;padding-top:16px">SKU по читаемому шаблону <code style="color:var(--ink)">CAT-BRAND-NNNN-SIZE-COLOR</code>, уникален и неизменяем после первого складского движения.</p>
+  </div>
+  <ul class="l">
+   <li><b>Типизированные поля + jsonb.</b> <span class="mute">Общие поля — колонки, специфичные для категории — jsonb, проверяемый по словарю атрибутов: тип, единица, допустимые значения, filterable, sortable.</span></li>
+   <li><b>Размерные сетки на категорию.</b> <span class="mute">XS…3XL, EU 35–46, детские по росту. Размер вне словаря невалиден.</span></li>
+   <li><b>Поиск и фильтры.</b> <span class="mute">Full-text и fuzzy через pg_trgm по названию, бренду, SKU, штрихкоду; фильтр по любому filterable-атрибуту, цене, остатку, марже, sell-through.</span></li>
+   <li><b>Операции.</b> <span class="mute">Массовое редактирование, фото на товар и на цвет, печать этикеток со штрихкодом или QR.</span></li>
+  </ul>
+ </div>
+</div>
+</section>
+
+<!-- 9 INVENTORY -->
+<section class="slide">
+<div class="in">
+ <header class="top"><span><b>3.2</b>Ядро · Склад</span><span>VISION-01 §4 · INV-STK</span></header>
+ <h2>Если склад ошибается, врут все каналы</h2>
+ <div class="formula">Доступно <span class="op">=</span> на&nbsp;складе <span class="op">−</span> резервы <span class="op">≥</span>&nbsp;0</div>
+ <div class="chips"><span class="chip">intake</span><span class="chip a">sale</span><span class="chip">return</span><span class="chip">write_off</span><span class="chip">transfer_out</span><span class="chip">transfer_in</span><span class="chip">adjustment</span></div>
+ <div class="g4">
+  <div class="rule"><h3>Append-only</h3><p class="mute">UPDATE и DELETE по движениям запрещены на уровне роли БД. Исправление — только компенсирующим движением.</p></div>
+  <div class="rule"><h3>Баланс = сумма движений</h3><p class="mute">Кэш баланса обновляется в той же транзакции. Ночная сверка, любое расхождение — алерт.</p></div>
+  <div class="rule"><h3>Резерв с TTL</h3><p class="mute">Row lock на строку баланса. Срок задаётся по каналу, например 2 ч для заказа в WhatsApp.</p></div>
+  <div class="rule"><h3>Инвентаризация с телефона</h3><p class="mute">Скан штрихкода → количество → diff → утверждение → корректирующие движения.</p></div>
+ </div>
+ <p class="lead">Два клиента бронируют последнюю единицу одновременно: второй сразу получает «нет в наличии», а бот предлагает другой размер или цвет того же товара.</p>
+</div>
+</section>
+
+<!-- 10 INTAKE -->
+<section class="slide">
+<div class="in">
+ <header class="top"><span><b>3.3</b>Ядро · Приёмка товара</span><span>VISION-01 §5</span></header>
+ <div class="split" style="align-items:end">
+  <h2>Карточка товара из фото за минуту</h2>
+  <div class="stat"><span class="v acc">&lt;&nbsp;60&nbsp;с</span><span class="k">целевое время от фото до карточки с AI-черновиком</span></div>
+ </div>
+ <div class="steps" style="--c:6">
+  <div>Менеджер открывает «Приёмку» в PWA и фотографирует товар или накладную.</div>
+  <div>Оригиналы уходят в приватный бакет R2 без изменений.</div>
+  <div>AI-шлюз извлекает тип, бренд, цвета, размеры, количество, закупочные цены.</div>
+  <div>Rust-валидаторы сверяют поля со словарями. Ошибки помечаются, а не исправляются молча.</div>
+  <div>Черновики сопоставлены с существующими товарами по штрихкоду и названию или предложены как новые.</div>
+  <div class="hl">Менеджер правит и утверждает: одна транзакция, движения intake, себестоимость, события.</div>
+ </div>
+ <div class="g4">
+  <div class="rule"><h3>Склад, не офис</h3><p class="mute">Крупные цели нажатия, камера первой, офлайн-очередь черновиков.</p></div>
+  <div class="rule"><h3>Одна накладная</h3><p class="mute">Много строк, массовое утверждение с правкой по строке.</p></div>
+  <div class="rule"><h3>Дубликаты</h3><p class="mute">Повторное фото накладной ловится по perceptual hash.</p></div>
+  <div class="rule"><h3>AI опционален</h3><p class="mute">Любой черновик можно создать и заполнить полностью вручную.</p></div>
+ </div>
+</div>
+</section>
+
+<!-- 11 ORDERS -->
+<section class="slide">
+<div class="in">
+ <header class="top"><span><b>4.1</b>Ядро · Заказы</span><span>VISION-02 §2 · INV-ORD</span></header>
+ <h2>Воронка продаж — это машина состояний заказа</h2>
+ <div class="sm">
+  <div class="st"><b>Черновик</b><code>draft</code></div><i>→</i>
+  <div class="st"><b>Ждёт оплату</b><code>awaiting_payment</code></div><i>→</i>
+  <div class="st"><b>Проверка оплаты</b><code>payment_review</code></div><i>→</i>
+  <div class="st k"><b>Оплачен</b><code>paid</code></div><i>→</i>
+  <div class="st"><b>Сборка</b><code>packing</code></div><i>→</i>
+  <div class="st"><b>Готов к отправке</b><code>ready_to_ship</code></div><i>→</i>
+  <div class="st"><b>Отправлен</b><code>shipped</code></div><i>→</i>
+  <div class="st"><b>Доставлен</b><code>delivered</code></div>
+ </div>
+ <div class="split">
+  <div class="scroll">
+   <table class="br stack">
+    <thead><tr><th>Из</th><th>В</th><th>Когда</th></tr></thead>
+    <tbody>
+     <tr><td><code>draft</code></td><td><code>awaiting_payment</code></td><td>подтверждение, товар резервируется</td></tr>
+     <tr><td><code>awaiting_payment</code></td><td><code>expired</code></td><td>истёк TTL резерва; обратно — перерезерв, если есть остаток</td></tr>
+     <tr><td><code>payment_review</code></td><td><code>awaiting_payment</code></td><td>отклонено или расхождение суммы</td></tr>
+     <tr><td><code>shipped</code></td><td><code>delivery_failed</code></td><td>курьер не доставил; далее повтор или возврат</td></tr>
+     <tr><td><code>delivered</code></td><td><code>returned</code></td><td>запрос на возврат</td></tr>
+     <tr><td><code>draft</code>, <code>awaiting_payment</code></td><td><code>cancelled</code></td><td>отмена</td></tr>
+    </tbody>
+   </table>
+  </div>
+  <ul class="l">
+   <li><b>Переходы в коде и в БД.</b> <span class="mute">Rust enum + функция перехода, зеркало в таблице переходов с триггером. Недопустимый переход невозможен.</span></li>
+   <li><b>Каждый переход оставляет след.</b> <span class="mute">Кто, когда, почему, плюс событие в outbox в той же транзакции.</span></li>
+   <li><b>Снимки цен.</b> <span class="mute">Строка хранит цену продажи, скидку и себестоимость на момент продажи.</span></li>
+   <li><b>Очереди-ассистент.</b> <span class="mute">«Ждёт оплату &gt; 1 ч», «Оплата на проверке», «Оплачен, не собран», «В пути &gt; N дней».</span></li>
+  </ul>
+ </div>
+</div>
+</section>
+
+<!-- 12 PAYMENTS -->
+<section class="slide">
+<div class="in">
+ <header class="top"><span><b>4.2</b>Ядро · Сверка оплат</span><span>VISION-02 §4 · INV-PAY</span></header>
+ <h2>AI предлагает совпадение.<br>Оплату подтверждает <em class="s acc">человек</em>.</h2>
+ <div class="steps" style="--c:4">
+  <div>Клиент получает QR, точную сумму и номер заказа для комментария к переводу.</div>
+  <div>Клиент присылает скриншот чека. Оригинал навсегда сохраняется в приватном R2.</div>
+  <div>AI извлекает все поля чека: банк, ID транзакции, время, сумму, отправителя, получателя, комментарий.</div>
+  <div>Rust проверяет типы: Money, валюта, дата, формат ID для конкретного банка.</div>
+  <div>Дедупликация: ID транзакции уникален среди подтверждённых, perceptual hash по всем чекам.</div>
+  <div>Движок предлагает заказ: тот же диалог, сумма равна долгу, время после создания заказа.</div>
+  <div>Менеджер проверяет поступление в банковском приложении.</div>
+  <div class="hl">Подтверждение человеком с правом <code>payments.confirm</code>. Заказ → <code>paid</code>.</div>
+ </div>
+ <div class="split">
+  <div>
+   <span class="n">Сигналы фрода — показываются, не блокируют</span>
+   <div class="chips"><span class="chip">чек раньше заказа</span><span class="chip">чужой счёт получателя</span><span class="chip">дубль хэша или ID</span><span class="chip">сумма не совпадает</span><span class="chip">признаки редактирования</span></div>
+  </div>
+  <p class="mute">Частичные и избыточные оплаты поддерживаются, остаток долга считается. Один перевод за два заказа делится на два платежа с аудитом. Перевод со счёта родственника — сигнал, а не блок.</p>
+ </div>
+</div>
+</section>
+
+<!-- 13 DELIVERY -->
+<section class="slide">
+<div class="in">
+ <header class="top"><span><b>4.3</b>Ядро · Доставка</span><span>VISION-02 §5</span></header>
+ <div class="split" style="align-items:end">
+  <h2>Семь статусов, клиент знает каждый</h2>
+  <p class="lead">Статус меняется кнопкой в CRM, API курьеров не предполагается. Каждое изменение уходит клиенту шаблоном через outbox. Появится API у партнёра — адаптер начнёт менять статусы сам, ядро не меняется.</p>
+ </div>
+ <div class="scroll">
+  <table class="stack">
+   <thead><tr><th>Статус</th><th>Сообщение клиенту</th></tr></thead>
+   <tbody>
+    <tr><td><code>pending</code></td><td>Заказ оплачен. Доставку организуем в течение {SLA}.</td></tr>
+    <tr><td><code>scheduled</code></td><td>Доставка назначена на {дата / окно}.</td></tr>
+    <tr><td><code>handed_to_courier</code></td><td>Заказ у курьера {имя / телефон, если разрешено}.</td></tr>
+    <tr><td><code>in_transit</code></td><td>В пути. Плюс ссылка на трекинг, если есть.</td></tr>
+    <tr><td><code class="acc">delivered</code></td><td>Доставлено, спасибо! Плюс запрос отзыва.</td></tr>
+    <tr><td><code>failed</code></td><td>Курьер не смог доставить: {причина}. Ответьте, чтобы перенести.</td></tr>
+    <tr><td><code>returned</code></td><td>Посылка вернулась к нам. Менеджер свяжется с вами.</td></tr>
+   </tbody>
+  </table>
+ </div>
+ <div class="chips"><span class="chip">самовывоз</span><span class="chip">свой курьер</span><span class="chip">такси-курьер</span><span class="chip">сторонняя служба</span><span class="chip">межгород</span><span class="chip a">SLA на способ → алерт при нарушении</span></div>
+</div>
+</section>
+
+<!-- 14 WA + BOT -->
+<section class="slide">
+<div class="in">
+ <header class="top"><span><b>5.1</b>Каналы · WhatsApp-шлюз и бот</span><span>VISION-03 §2–3 · INV-WA</span></header>
+ <h2>Только официальный API. Сначала кнопки, потом LLM</h2>
+ <div class="g2">
+  <div class="box" style="display:flex;flex-direction:column;gap:14px">
+   <h3>Шлюз</h3>
+   <div class="formula" style="font-size:clamp(28px,3.4vw,52px)">24&nbsp;ч <span class="op">→</span> свободный текст<br><span class="mute">иначе</span> <span class="op">→</span> шаблон</div>
+   <ul class="l mute">
+    <li>Единственный модуль, который говорит с WhatsApp API.</li>
+    <li>Подпись webhook проверяется до любой обработки, дедуп по ID сообщения.</li>
+    <li>Исходящие только из outbox-воркеров: ретраи и ключи идемпотентности.</li>
+    <li>Реестр шаблонов: utility, authentication, marketing. Marketing — только при opt-in.</li>
+    <li>Мониторинг tier, качества шаблонов и кодов ошибок.</li>
+   </ul>
+  </div>
+  <div class="box" style="display:flex;flex-direction:column;gap:14px">
+   <h3>Бот</h3>
+   <ul class="l mute">
+    <li><span style="color:var(--ink)">FAQ:</span> доставка, оплата, возвраты, часы работы. Тексты правит владелец в CRM, не в коде.</li>
+    <li><span style="color:var(--ink)">Наличие:</span> «есть M?» — живой запрос остатка, альтернативы если нет.</li>
+    <li><span style="color:var(--ink)">Поиск товара:</span> по SKU из ссылки <code>wa.me</code> или по скриншоту поста через сравнение изображений.</li>
+    <li><span style="color:var(--ink)">Старт заказа:</span> интерактивный список или WhatsApp Flow → черновик заказа.</li>
+    <li><span style="color:var(--ink)">Передача человеку:</span> неясное намерение, жалоба или «менеджер» — бот замолкает в этом диалоге.</li>
+   </ul>
+   <p class="acc" style="font-size:14px">Бот не обещает того, что не подтвердило ядро: наличие, цена и срок — только из запросов к ядру.</p>
+  </div>
+ </div>
+</div>
+</section>
+
+<!-- 15 INBOX -->
+<section class="slide">
+<div class="in">
+ <header class="top"><span><b>5.2</b>Каналы · CRM-инбокс</span><span>VISION-03 §4</span></header>
+ <div class="split" style="align-items:end">
+  <h2>Инбокс обязан быть быстрее телефона</h2>
+  <p class="lead">Иначе команда вернётся в личный WhatsApp. Цель после P2 — ноль клиентских переписок в личных телефонах.</p>
+ </div>
+ <div class="mock" aria-label="Макет инбокса">
+  <div>
+   <span class="h">Неназначенные · Мои · Ждут оплату · Проверка · Бот</span>
+   <div class="cv on"><div><b>Айгерим К.</b><br><small>Скинула чек</small></div><span class="dot"></span></div>
+   <div class="cv"><div><b>Нурлан А.</b><br><small>Бот: подбор размера</small></div><small>2 мин</small></div>
+   <div class="cv"><div><b>+996 555 01 23 45</b><br><small>Лид с витрины</small></div><small>9 мин</small></div>
+   <div class="cv"><div><b>Жылдыз Т.</b><br><small>Где мой заказ?</small></div><small>14 мин</small></div>
+   <div class="cv"><div><b>Бекзат М.</b><br><small>Доставлено</small></div><small>1 ч</small></div>
+  </div>
+  <div>
+   <span class="h">Айгерим К. · окно открыто ещё 21 ч</span>
+   <div class="msg c">Здравствуйте, эта куртка есть в M?</div>
+   <div class="msg b">Да: JKT-NRD-0142, M, чёрная — 2 шт. Цена 4 900 сом. Оформить?</div>
+   <div class="msg c">Да, давайте</div>
+   <span class="sys">Заказ #1287 создан · резерв до 18:40</span>
+   <div class="msg m">QR и сумма 4 900 сом. В комментарии укажите 1287.</div>
+   <div class="msg c">[чек.jpg]</div>
+   <span class="sys">Предложена оплата · совпадение высокое</span>
+  </div>
+  <div>
+   <span class="h">Клиент</span>
+   <b style="font-size:16px">Айгерим К.</b>
+   <div class="kv"><span>Размер, верх</span><span>M</span></div>
+   <div class="kv"><span>Заказов</span><span>3</span></div>
+   <div class="kv"><span>Сумма покупок</span><span style="white-space:nowrap">14 200 сом</span></div>
+   <div class="kv"><span>Маркетинг</span><span>opt-in</span></div>
+   <div class="btn" style="margin-top:auto">Подтвердить оплату</div>
+  </div>
+ </div>
+ <p class="mute" style="font-size:13px">Пример интерфейса, данные условные.</p>
+ <div class="chips"><span class="chip">назначение и передача</span><span class="chip">защита от двух менеджеров в одном чате</span><span class="chip">быстрые ответы с переменными</span><span class="chip">карточка товара в один тап</span><span class="chip">заказ из чата</span><span class="chip">шаблон при закрытом окне</span><span class="chip">заметки и @упоминания</span><span class="chip">клавиатура на десктопе, один большой палец на телефоне</span></div>
+ <p class="lead">Без пайплайнов, этапов сделок и конструктора полей: воронка — это и есть машина состояний заказа. <span class="acc">До P2 решить с BSP вопрос coexistence:</span> от него зависит, можно ли раскатывать инбокс постепенно.</p>
+</div>
+</section>
+
+<!-- 16 POSTS + STOREFRONT -->
+<section class="slide">
+<div class="in">
+ <header class="top"><span><b>5.3</b>Каналы · Посты и витрина</span><span>VISION-03 §5–6</span></header>
+ <h2>Публикация за секунды, каталог с&nbsp;живыми остатками</h2>
+ <div class="split" style="grid-template-columns:minmax(0,1fr) minmax(0,1.6fr)">
+  <div class="post" aria-label="Пример карточки поста">
+   <div class="row"><b>Новое поступление</b><span class="mono">JKT-0142</span></div>
+   <div class="ph"><svg viewBox="0 0 200 220" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+    <path d="M70 40 L100 52 L130 40 L168 64 L156 104 L142 98 L142 196 L58 196 L58 98 L44 104 L32 64 Z" fill="#1d1b19" stroke="#3a3632" stroke-width="2"/>
+    <path d="M100 52 L100 196" stroke="#3a3632" stroke-width="2"/>
+    <path d="M70 40 L100 70 L130 40" fill="none" stroke="#ff4a1c" stroke-width="3"/>
+    <circle cx="108" cy="92" r="3" fill="#3a3632"/><circle cx="108" cy="122" r="3" fill="#3a3632"/><circle cx="108" cy="152" r="3" fill="#3a3632"/>
+   </svg></div>
+   <div class="row"><span class="pr">4 900 сом</span><div class="sz"><span>S</span><span>M</span><span class="off">L</span><span>XL</span></div></div>
+   <div class="row" style="font-size:12px"><span>Написать в личку: wa.me/…</span><span>пример</span></div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:22px">
+   <div>
+    <h3 style="margin-bottom:12px">Генератор постов</h3>
+    <div class="steps" style="--c:5">
+     <div>Событие: публикация, смена цены, мало или ноль остатка, или кнопка «пост».</div>
+     <div>Рендер карточки и текста по брендовому шаблону.</div>
+     <div>Пост в очереди публикации со списком групп.</div>
+     <div>Менеджер копирует и вставляет, отмечает группу.</div>
+     <div class="hl">«Продано» и «осталось 2» уходят в те же группы.</div>
+    </div>
+   </div>
+   <div>
+    <h3 style="margin-bottom:8px">Витрина</h3>
+    <ul class="l mute">
+     <li><span style="color:var(--ink)">Главная кнопка — «Заказать в WhatsApp».</span> Ссылка <code>wa.me</code> с SKU и размером: клиент пишет первым, окно бесплатное, бот сразу видит товар.</li>
+     <li><span style="color:var(--ink)">Запасной путь — лид-форма:</span> имя и телефон, Turnstile, rate limit, лид в инбоксе.</li>
+     <li><span style="color:var(--ink)">SvelteKit SSR,</span> OG-превью для красивых ссылок в чатах. Без корзины и аккаунтов.</li>
+    </ul>
+   </div>
+  </div>
+ </div>
+</div>
+</section>
+
+<!-- 17 AI -->
+<section class="slide">
+<div class="in">
+ <header class="top"><span><b>6.1</b>Платформа · AI-шлюз</span><span>VISION-04 §1 · INV-AI</span></header>
+ <h2>AI — парсер, никогда не тот, кто решает</h2>
+ <div class="pipe">
+  <span>ParseRequest</span><i>→</i><span>Препроцессинг</span><i>→</i><span>Цепочка провайдеров + circuit breaker</span><i>→</i><span>Raw JSON</span><i>→</i><span>serde deny_unknown_fields</span><i>→</i><span>Доменная валидация</span><i>→</i><span>Repair ≤ 2</span><i>→</i><span class="k">Draft&lt;T&gt; | ParseError</span>
+ </div>
+ <div class="split">
+  <div class="scroll">
+   <table>
+    <thead><tr><th>Класс ошибки</th><th>Пример</th><th>Действие</th></tr></thead>
+    <tbody>
+     <tr><td>Транспорт</td><td class="mute">таймаут, 5xx, 429</td><td>сразу следующий провайдер</td></tr>
+     <tr><td>Невалидный вывод</td><td class="mute">не тот тип, неизвестный размер</td><td>repair у того же, до 2 раз, затем следующий</td></tr>
+     <tr><td>Контент</td><td class="mute">нечитаемо, не чек</td><td>стоп, просьба переснять</td></tr>
+     <tr><td>Отказ политики</td><td class="mute">провайдер отказался</td><td>следующий провайдер</td></tr>
+    </tbody>
+   </table>
+  </div>
+  <ul class="l">
+   <li><b>Токены зависят от разрешения, а не от веса файла.</b> <span class="mute">Сжатие JPEG экономит байты, но не токены, и портит OCR. Поэтому: ориентация, кроп, выравнивание, даунскейл до порога модели.</span></li>
+   <li><b>Схема из Rust-типов.</b> <span class="mute">JSON Schema генерируется через schemars: схема и валидатор не расходятся.</span></li>
+   <li><b>Провайдеры меняются конфигом.</b> <span class="mute">Основной — Gemini Flash-Lite класса, точный model ID сверить при интеграции. Минимум один запасной от другого вендора.</span></li>
+   <li><b>Телеметрия каждого вызова</b> <span class="mute">и позже — сколько полей поправил человек. Эти данные решают порядок провайдеров.</span></li>
+  </ul>
+ </div>
+</div>
+</section>
+
+<!-- 18 OUTBOX -->
+<section class="slide">
+<div class="in">
+ <header class="top"><span><b>6.2</b>Платформа · События</span><span>VISION-04 §2 · BLUEPRINT §7 · INV-EVT</span></header>
+ <div class="split" style="align-items:end">
+  <h2>Transactional outbox вместо брокера</h2>
+  <div class="stat"><span class="v acc">p95&nbsp;&lt;&nbsp;5&nbsp;с</span><span class="k">целевая задержка outbox</span></div>
+ </div>
+ <div class="split">
+  <ul class="l">
+   <li><b>Та же транзакция.</b> <span class="mute">Изменение состояния и запись в outbox коммитятся вместе.</span></li>
+   <li><b>Воркеры.</b> <span class="mute"><code>FOR UPDATE SKIP LOCKED</code>, экспоненциальный backoff, dead-letter после N попыток с алертом.</span></li>
+   <li><b>Идемпотентность.</b> <span class="mute">Каждый потребитель ведёт <code>processed_events</code>.</span></li>
+   <li><b>Порядок и скорость.</b> <span class="mute">Порядок по агрегату там, где нужно. <code>LISTEN/NOTIFY</code> будит воркеров, polling страхует.</span></li>
+   <li><b>Версии.</b> <span class="mute">Неизвестную версию события потребитель отклоняет, а не угадывает. Внешний брокер — только по измеренной нужде.</span></li>
+  </ul>
+  <div class="scroll">
+   <table>
+    <thead><tr><th>Событие</th><th>Кто читает</th></tr></thead>
+    <tbody>
+     <tr><td><code>variant.published</code></td><td class="mute">посты, витрина</td></tr>
+     <tr><td><code>price.changed</code></td><td class="mute">посты, витрина, аналитика</td></tr>
+     <tr><td><code class="acc">stock.changed</code></td><td class="mute">витрина, кэш бота, посты, аналитика</td></tr>
+     <tr><td><code>reservation.*</code></td><td class="mute">заказы, уведомления</td></tr>
+     <tr><td><code>order.status_changed</code></td><td class="mute">уведомления, аналитика, доставка</td></tr>
+     <tr><td><code>payment.*</code></td><td class="mute">инбокс, заказы, уведомления</td></tr>
+     <tr><td><code>delivery.status_changed</code></td><td class="mute">уведомления, аналитика</td></tr>
+     <tr><td><code>lead.created</code></td><td class="mute">инбокс</td></tr>
+     <tr><td><code>ai.parse_*</code></td><td class="mute">приёмка, оплаты, аналитика</td></tr>
+    </tbody>
+   </table>
+  </div>
+ </div>
+</div>
+</section>
+
+<!-- 19 ACCESS / NOTIF / ANALYTICS -->
+<section class="slide">
+<div class="in">
+ <header class="top"><span><b>6.3</b>Платформа · Доступ, уведомления, аналитика</span><span>VISION-04 §3–5</span></header>
+ <h2>Без паролей, без самодеятельности, с&nbsp;полным следом</h2>
+ <div class="g3">
+  <div class="layer"><h3>Доступ и аудит</h3>
+   <p class="mute">Сотрудников создаёт только владелец. Вход — OTP шаблоном WhatsApp на привязанный номер; код хранится хэшем, короткий TTL, лимит попыток. Серверные сессии, отзыв по устройству, деактивация гасит все сессии.</p>
+   <div class="chips"><span class="chip">prices.view_cost</span><span class="chip">stock.write_off</span><span class="chip">orders.discount</span><span class="chip a">payments.confirm</span><span class="chip">inbox.view_all</span><span class="chip">analytics.view_margin</span><span class="chip">staff.manage</span></div>
+   <p class="mute">Права проверяются на сервере в каждом запросе. Аудит append-only: кто, что, до/после, причина, устройство.</p>
+  </div>
+  <div class="layer"><h3>Уведомления</h3>
+   <p class="mute">Потребитель outbox плюс таблица маппинга: событие × статус → шаблон и переменные. Тексты правит владелец в рамках одобренных шаблонов.</p>
+   <ul class="l mute">
+    <li>Окно открыто — сессионное сообщение, закрыто — шаблон.</li>
+    <li>Напоминание об оплате до истечения резерва.</li>
+    <li>Тихие часы для несрочного.</li>
+    <li>Внутренние: новый чат, оплата на проверке, нарушение SLA, мало остатка.</li>
+   </ul>
+  </div>
+  <div class="layer"><h3>Аналитика · P4</h3>
+   <p class="mute">Каждая метрика воспроизводима из канонических таблиц. Тяжёлые запросы — только по materialized views. Границы дня — Asia/Bishkek.</p>
+   <div class="chips"><span class="chip">выручка и AOV</span><span class="chip">маржа по любому срезу</span><span class="chip">sell-through</span><span class="chip">мёртвый сток</span><span class="chip">размерная кривая</span><span class="chip">воронка чат → оплата</span><span class="chip">когорты и LTV</span><span class="chip">заказы на пост</span><span class="chip">точность AI</span></div>
+   <p class="mute">Дашборд, свободная сводная, экспорт CSV/XLSX, ежедневные сводки владельцу.</p>
+  </div>
+ </div>
+</div>
+</section>
+
+<!-- 20 INVARIANTS -->
+<section class="slide or">
+<div class="in">
+ <header class="top"><span><b>7.1</b>Инварианты</span><span>INVARIANTS</span></header>
+ <div class="split" style="align-items:end">
+  <div><div class="big" style="font-size:clamp(110px,17vw,280px)">53</div><h2 style="font-size:clamp(28px,3.4vw,52px)">правила, которые держатся всегда</h2></div>
+  <p class="lead">Независимо от фичи, канала и дедлайна. PR, ослабляющий инвариант, требует ADR и подписи владельца. Уровни: БД, типы, код, процесс.</p>
+ </div>
+ <div class="inv" style="border-color:rgba(0,0,0,.3)">
+  <div style="border-color:rgba(0,0,0,.3)"><b>3</b><span style="color:#2a1208">ARCH архитектура</span></div>
+  <div style="border-color:rgba(0,0,0,.3)"><b>4</b><span style="color:#2a1208">MON деньги</span></div>
+  <div style="border-color:rgba(0,0,0,.3)"><b>6</b><span style="color:#2a1208">STK склад</span></div>
+  <div style="border-color:rgba(0,0,0,.3)"><b>4</b><span style="color:#2a1208">CAT каталог</span></div>
+  <div style="border-color:rgba(0,0,0,.3)"><b>4</b><span style="color:#2a1208">ORD заказы</span></div>
+  <div style="border-color:rgba(0,0,0,.3)"><b>5</b><span style="color:#2a1208">PAY оплаты</span></div>
+  <div style="border-color:rgba(0,0,0,.3)"><b>5</b><span style="color:#2a1208">AI парсинг</span></div>
+  <div style="border-color:rgba(0,0,0,.3)"><b>5</b><span style="color:#2a1208">WA WhatsApp</span></div>
+  <div style="border-color:rgba(0,0,0,.3)"><b>4</b><span style="color:#2a1208">EVT события</span></div>
+  <div style="border-color:rgba(0,0,0,.3)"><b>5</b><span style="color:#2a1208">AUTH доступ</span></div>
+  <div style="border-color:rgba(0,0,0,.3)"><b>3</b><span style="color:#2a1208">DATA данные</span></div>
+  <div style="border-color:rgba(0,0,0,.3)"><b>5</b><span style="color:#2a1208">OPS эксплуатация</span></div>
+ </div>
+ <div class="g3">
+  <p><b>Деньги — только целые тыйыны.</b> Никакой float не держит деньги; разные валюты нельзя сложить без явной конвертации.</p>
+  <p><b>AI никогда не пишет в канонические таблицы.</b> Только черновики, которые утверждает человек.</p>
+  <p><b>Каждый внешний эффект — из outbox.</b> Ни одного прямого вызова WhatsApp из обработчика запроса.</p>
+ </div>
+</div>
+</section>
+
+<!-- 21 STACK -->
+<section class="slide">
+<div class="in">
+ <header class="top"><span><b>7.2</b>Стек</span><span>STACK §2 · Locked меняется только через ADR</span></header>
+ <h2>Rust и PostgreSQL в центре, всё остальное — тонко</h2>
+ <div class="scroll">
+  <table class="stack">
+   <thead><tr><th>Слой</th><th>Выбор</th><th>Статус</th></tr></thead>
+   <tbody>
+    <tr><td>Backend</td><td>Rust stable, edition 2024 · tokio · axum + tower · sqlx</td><td><span class="lvl h">Locked</span></td></tr>
+    <tr><td>База данных</td><td>PostgreSQL 17 или 18, версия фиксируется на старте · pg_trgm, pgcrypto, btree_gin</td><td><span class="lvl h">Locked</span></td></tr>
+    <tr><td>События</td><td>Transactional outbox в PostgreSQL + Rust-воркеры</td><td><span class="lvl h">Locked</span></td></tr>
+    <tr><td>Хранилище</td><td>Cloudflare R2: публичные медиа, приватные документы, бэкапы</td><td><span class="lvl h">Locked</span></td></tr>
+    <tr><td>Сеть</td><td>Cloudflare DNS, Tunnel, Turnstile</td><td><span class="lvl h">Locked</span></td></tr>
+    <tr><td>WhatsApp</td><td>Business Platform Cloud API через локального BSP</td><td><span class="lvl h">Locked</span></td></tr>
+    <tr><td>LLM</td><td>Мультипровайдерный адаптер; основной — Gemini Flash-Lite класса</td><td><span class="lvl h">Locked</span> <span class="lvl m">провайдеры Open</span></td></tr>
+    <tr><td>Вход</td><td>OTP через authentication-шаблон WhatsApp + серверные сессии</td><td><span class="lvl h">Locked</span></td></tr>
+    <tr><td>Фронтенд</td><td>SvelteKit + TypeScript: PWA для CRM, SSR для витрины · клиент из OpenAPI (utoipa)</td><td><span class="lvl m">Proposed</span></td></tr>
+    <tr><td>Изображения</td><td>fast_image_resize, libvips, perceptual hash</td><td><span class="lvl m">Proposed</span></td></tr>
+    <tr><td>Наблюдаемость</td><td>tracing + OpenTelemetry → Prometheus, Loki, Tempo, Grafana</td><td><span class="lvl m">Proposed</span></td></tr>
+    <tr><td>Деплой</td><td>Docker + compose, без Kubernetes · GitHub Actions</td><td><span class="lvl h">Locked</span> <span class="lvl m">CI Proposed</span></td></tr>
+   </tbody>
+  </table>
+ </div>
+ <p class="mute" style="font-size:14px">Отклонены: Leptos — экосистема и найм не окупаются для CRM; React — нет решающего преимущества над SvelteKit.</p>
+</div>
+</section>
+
+<!-- 22 INFRA -->
+<section class="slide">
+<div class="in">
+ <header class="top"><span><b>7.3</b>Инфраструктура и восстановление</span><span>STACK §9–10 · INV-OPS</span></header>
+ <h2>Три сервера, два провайдера, ежемесячная проверка</h2>
+ <div class="g3">
+  <div class="box"><span class="n">S1 · db</span><h3>PostgreSQL + WAL-G</h3><p class="mute" style="margin-top:8px">Только приватная сеть, без публичного IP. NVMe с запасом ×3 к ожидаемому объёму.</p></div>
+  <div class="box" style="border-color:var(--acc)"><span class="n acc">S2 · app</span><h3>Rust API, воркеры, статика, cloudflared</h3><p class="mute" style="margin-top:8px">Наружу только исходящие и Tunnel. Публичные точки записи — webhook и лид-форма.</p></div>
+  <div class="box"><span class="n">S3 · ops</span><h3>Копия бэкапов, staging, Grafana</h3><p class="mute" style="margin-top:8px">Обязательно другой провайдер или хотя бы другой ДЦ, чем у S1.</p></div>
+ </div>
+ <div class="g4" style="margin-top:auto">
+  <div class="stat"><span class="v acc">≤&nbsp;5&nbsp;мин</span><span class="k">RPO, потеря данных</span></div>
+  <div class="stat"><span class="v">≤&nbsp;2&nbsp;ч</span><span class="k">RTO, время восстановления</span></div>
+  <div class="stat"><span class="v">14&nbsp;дн</span><span class="k">PITR, минимум</span></div>
+  <div class="stat"><span class="v">12/12</span><span class="k">restore drill на staging в год</span></div>
+ </div>
+</div>
+</section>
+
+<!-- 23 ROADMAP -->
+<section class="slide">
+<div class="in">
+ <header class="top"><span><b>8.1</b>Фазы поставки</span><span>BLUEPRINT §9</span></header>
+ <div class="split" style="align-items:end">
+  <h2>Каждая фаза уходит в прод до старта следующей</h2>
+  <p class="lead">Защита от расползания скоупа: бизнес получает пользу после каждой фазы, а не в конце.</p>
+ </div>
+ <div class="rm" style="margin-top:auto">
+  <div><div class="bar now"></div><div class="t"><b class="acc">P1 · Ядро</b><span>Каталог, склад, приёмка с AI, базовые финансы, доступ</span><span class="mute">Остатки больше не живут в головах</span></div></div>
+  <div><div class="bar"></div><div class="t"><b>P2 · Разговоры</b><span>WhatsApp-шлюз, инбокс, бот FAQ и наличия, заказы, сверка оплат</span><span class="mute">Один инбокс, структурные заказы, быстрая сверка</span></div></div>
+  <div><div class="bar" style="background:#262422"></div><div class="t"><b>P3 · Охват</b><span>Генератор постов, витрина, лид-форма</span><span class="mute">Публикация за секунды, каталог с живыми остатками</span></div></div>
+  <div><div class="bar" style="background:#302d2a"></div><div class="t"><b>P4 · Инсайт</b><span>Уведомления о доставке, дашборды, отчёты</span><span class="mute">Клиент в курсе сам, владелец видит маржу и мёртвый сток</span></div></div>
+ </div>
+</div>
+</section>
+
+<!-- 24 RISKS -->
+<section class="slide">
+<div class="in">
+ <header class="top"><span><b>8.2</b>Риски</span><span>BLUEPRINT §10</span></header>
+ <h2>Что может сломать систему и&nbsp;чем это закрыто</h2>
+ <div class="scroll">
+  <table class="stack">
+   <thead><tr><th>Риск</th><th>Влияние</th><th>Защита</th></tr></thead>
+   <tbody>
+    <tr><td>Баги склада или outbox → неверное наличие везде</td><td><span class="lvl h">Высокое</span></td><td class="mute">INV-STK, INV-EVT, ночная сверка, property-тесты</td></tr>
+    <tr><td>Поддельные скриншоты оплаты</td><td><span class="lvl h">Высокое</span></td><td class="mute">INV-PAY, проверка в банковском приложении, дедупликация</td></tr>
+    <tr><td>Бан номера или падение рейтинга качества</td><td><span class="lvl h">Высокое</span></td><td class="mute">Только официальный API, дисциплина opt-in, мониторинг шаблонов</td></tr>
+    <tr><td>Потеря данных</td><td><span class="lvl h">Высокое</span></td><td class="mute">INV-OPS, бэкапы у другого провайдера, ежемесячный restore</td></tr>
+    <tr><td>Смена или сбой LLM-провайдера</td><td><span class="lvl m">Среднее</span></td><td class="mute">Мультипровайдерный адаптер, fallback через конфиг</td></tr>
+    <tr><td>Команда остаётся в личном WhatsApp</td><td><span class="lvl m">Среднее</span></td><td class="mute">Инбокс быстрее телефона, решение по coexistence с BSP</td></tr>
+    <tr><td>Расползание скоупа</td><td><span class="lvl m">Среднее</span></td><td class="mute">Фазы; следующая не стартует до релиза предыдущей</td></tr>
+   </tbody>
+  </table>
+ </div>
+</div>
+</section>
+
+<!-- 25 METRICS -->
+<section class="slide">
+<div class="in">
+ <header class="top"><span><b>8.3</b>Метрики успеха</span><span>VISION-01…04</span></header>
+ <h2>Как поймём, что работает</h2>
+ <div class="g4">
+  <div class="stat"><span class="v acc">0</span><span class="k">случаев overselling — продано больше, чем было</span></div>
+  <div class="stat"><span class="v">0</span><span class="k">расхождений в ночной сверке остатков</span></div>
+  <div class="stat"><span class="v">0</span><span class="k">клиентских переписок в личных телефонах после P2</span></div>
+  <div class="stat"><span class="v">0</span><span class="k">несанкционированных действий по аудиту</span></div>
+ </div>
+ <div class="g3" style="margin-top:auto">
+  <ul class="l"><li><b>Склад и приёмка</b></li><li class="mute">Карточка из фото быстрее 60 с</li><li class="mute">Доля AI-черновиков без правок, по провайдерам</li></ul>
+  <ul class="l"><li><b>Продажи и оплаты</b></li><li class="mute">Время первого ответа: бот и человек</li><li class="mute">Доля диалогов, решённых ботом без передачи</li><li class="mute">Конверсия чат → заказ; медиана чек → подтверждение</li><li class="mute">Время от поста в системе до всех групп</li></ul>
+  <ul class="l"><li><b>Платформа</b></li><li class="mute">Outbox p95 меньше 5 с</li><li class="mute">Нарушения SLA доставки в неделю</li><li class="mute">Фрод, пойманный до отправки</li><li class="mute">Restore drill 12 из 12</li></ul>
+ </div>
+</div>
+</section>
+
+<!-- 26 OPEN QUESTIONS -->
+<section class="slide">
+<div class="in">
+ <header class="top"><span><b>8.4</b>Открытые вопросы</span><span>все документы</span></header>
+ <div class="split">
+  <div style="display:flex;flex-direction:column;gap:20px">
+   <h2>Что нужно выяснить, чтобы&nbsp;зафиксировать дизайн</h2>
+   <div class="box" style="border-color:var(--acc)"><span class="n acc">Решить до P2</span><h3>Coexistence с BSP</h3><p class="mute" style="margin-top:8px">Business-приложение и API на одном номере. Есть — инбокс раскатывается постепенно. Нет — инбокс обязателен в день переезда номера на API.</p></div>
+  </div>
+  <ul class="l">
+   <li><b>Масштаб.</b> <span class="mute">Число менеджеров, точек и складов, SKU, заказов в день, частота приёмки.</span></li>
+   <li><b>Накладные.</b> <span class="mute">Стандартные от постоянных поставщиков или хаотичные.</span></li>
+   <li><b>Банки клиентов.</b> <span class="mute">Какими пользуются чаще — от этого тестовый набор парсера чеков.</span></li>
+   <li><b>Доставка.</b> <span class="mute">Какие партнёры и есть ли у кого-то API.</span></li>
+   <li><b>Возвраты.</b> <span class="mute">Сроки и условия, которые нужно закодировать.</span></li>
+   <li><b>LLM.</b> <span class="mute">Запасные провайдеры и месячный бюджет.</span></li>
+   <li><b>Персонал.</b> <span class="mute">Канал уведомлений: только CRM или ещё WhatsApp / Telegram.</span></li>
+   <li><b>Хранение.</b> <span class="mute">Срок хранения чеков и медиа чатов: закон и стоимость.</span></li>
+  </ul>
+ </div>
+</div>
+</section>
+
+<!-- 27 END -->
+<section class="slide or">
+<div class="in">
+ <header class="top"><span><b>Dukon</b>v0.1.0 · черновик</span><span>STACK · INVARIANTS · BLUEPRINT · VISION-01…04</span></header>
+ <div style="margin-top:auto;display:flex;flex-direction:column;gap:24px">
+  <div class="big" style="font-size:clamp(84px,29vw,470px);letter-spacing:-.065em;line-height:.8;margin-left:-.04em">Dukon</div>
+  <div class="g3" style="align-items:end">
+   <p style="font-size:clamp(20px,2vw,30px);font-weight:600;letter-spacing:-.02em;line-height:1.15;grid-column:span 2">Клиент пишет туда, где ему удобно. Бизнес работает в системе, где ничего не теряется.</p>
+   <p class="lead">Следующий шаг: ответы на открытые вопросы и старт P1 — ядро.</p>
+  </div>
+ </div>
+</div>
+</section>
+
+</main>
+
+<nav class="nav" aria-label="Навигация по слайдам">
+ <button class="nb" id="prev" aria-label="Предыдущий слайд">←</button>
+ <button class="nb" id="next" aria-label="Следующий слайд">→</button>
+ <span class="cnt"><b id="cur">01</b> / <span id="tot">27</span></span>
+ <div class="prog"><i id="bar"></i></div>
+ <span class="hint">← → или свайп</span>
+</nav>
+
+<script>
+{
+const deck=document.getElementById('deck');
+const slides=[...deck.querySelectorAll('.slide')];
+const n=slides.length;
+const cur=document.getElementById('cur'),bar=document.getElementById('bar');
+const prev=document.getElementById('prev'),next=document.getElementById('next');
+const pad=v=>String(v).padStart(2,'0');
+document.getElementById('tot').textContent=pad(n);
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const idx=()=>Math.round(deck.scrollLeft/deck.clientWidth);
+const go=i=>{i=Math.max(0,Math.min(n-1,i));deck.scrollTo({left:i*deck.clientWidth,behavior:reduce?'auto':'smooth'})};
+let last=0;
+const upd=()=>{const i=idx();last=i;cur.textContent=pad(i+1);bar.style.width=((i+1)/n*100)+'%';prev.disabled=i===0;next.disabled=i===n-1};
+deck.addEventListener('scroll',()=>requestAnimationFrame(upd),{passive:true});
+prev.addEventListener('click',()=>go(idx()-1));
+next.addEventListener('click',()=>go(idx()+1));
+addEventListener('keydown',e=>{
+ if(e.target.closest&&e.target.closest('input,textarea'))return;
+ const k=e.key;
+ if(k==='ArrowRight'||k==='PageDown'||(k===' '&&!e.shiftKey)){e.preventDefault();go(idx()+1)}
+ else if(k==='ArrowLeft'||k==='PageUp'||(k===' '&&e.shiftKey)){e.preventDefault();go(idx()-1)}
+ else if(k==='Home'){e.preventDefault();go(0)}
+ else if(k==='End'){e.preventDefault();go(n-1)}
+});
+const keep=new ResizeObserver(()=>{deck.scrollLeft=last*deck.clientWidth});
+keep.observe(deck);
+upd();
+}
+</script>
+</body>
+</html>
